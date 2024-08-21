@@ -56,5 +56,6 @@ def populate():
     return "1,000,000 fake records have been added to the database!"
 
 if __name__ == "__main__":
-    db.create_all() 
+    with app.app_context(): 
+        db.create_all() 
     app.run(debug=True)
