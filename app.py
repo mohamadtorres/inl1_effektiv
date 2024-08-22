@@ -1,6 +1,7 @@
 from flask import Flask, render_template
 from faker import Faker
 from flask_sqlalchemy import SQLAlchemy
+from timeit import default_timer
 
 app = Flask(__name__)
 
@@ -18,7 +19,7 @@ class Person(db.Model):
     stad = db.Column(db.String(100), nullable=False)
     land = db.Column(db.String(100), nullable=False)
     yrke = db.Column(db.String(100), nullable=False)
-    telefonnummer = db.Column(db.String(20), nullable=False) 
+    telefonnummer = db.Column(db.String(20), nullable=False)
 
     def __repr__(self):
         return f"<Person {self.namn} {self.efternamn}>"
@@ -27,35 +28,38 @@ class Person(db.Model):
 def home():
     return render_template("base.html")
 
-@app.route("/populate")
-def populate():
-    batch_size = 10000  # Adjust batch size as needed
+
+def main():
+    t_start = default_timer()
     total_records = 1000000
+    persons = []
 
-    for _ in range(0, total_records, batch_size):
-        persons = []
-        for _ in range(batch_size):
-            person = Person(
-                namn=faker.first_name(),
-                efternamn=faker.last_name(),
-                personnummer=faker.unique.ssn(),
-                stad=faker.city(),
-                land=faker.country(),
-                yrke=faker.job(),
-                telefonnummer=faker.phone_number()
-            )
-            persons.append(person)
+    for _ in range(total_records):
+        person = Person(
+            namn=faker.first_name(),
+            efternamn=faker.last_name(),
+            personnummer=faker.unique.ssn(),
+            stad=faker.city(),
+            land=faker.country(),
+            yrke=faker.job(),
+            telefonnummer=faker.phone_number()
+        )
+        persons.append(person)
 
-        try:
-            db.session.bulk_save_objects(persons)  
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            return f"An error occurred: {e}"
+    try:
+        db.session.bulk_save_objects(persons)  
+        db.session.commit()
+        print("1,000,000 fake records have been added to the database!")
+    except Exception as e:
+        db.session.rollback()
+        print(f"An error occurred: {e}")
 
-    return "1,000,000 fake records have been added to the database!"
+    t_end = default_timer()
+    print(f"Det tog {t_end - t_start:.2f} sekunder att skapa listan!")
+
 
 if __name__ == "__main__":
-    with app.app_context(): 
+    with app.app_context():
         db.create_all() 
+        main() 
     app.run(debug=True)
