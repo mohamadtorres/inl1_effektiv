@@ -5,7 +5,7 @@ from timeit import default_timer
 
 app = Flask(__name__)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root:golestan5@localhost/inl1'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root:golestan5@localhost:3307/inl1'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -37,7 +37,7 @@ def main():
     
 
     t_start = default_timer()
-    total_records = 1000
+    total_records = 1000000
     persons = []
 
     for _ in range(total_records):
@@ -51,8 +51,9 @@ def main():
             telefonnummer=faker.phone_number()
         )
         persons.append(person)
-        if _ % 100 == 0:  
-            print(f"{_} records created...")
+        if _ % 100000 == 0:  
+            t_end_jämn = default_timer()
+            print(f"{_} records created after {t_end_jämn - t_start :.2f} sekunder")
     try:
         db.session.bulk_save_objects(persons)  
         db.session.commit()
