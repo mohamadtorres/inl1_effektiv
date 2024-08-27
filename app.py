@@ -31,36 +31,55 @@ def home():
 
 def main():
     record_count = Person.query.count()
-    if record_count > 0:
+    if record_count > 100000:
         print(f"Det finns {record_count} data i datasetet så INGA nya data")
         return
     
 
+    # t_start = default_timer()
+    # total_records = 1000000
+    # persons = []
+
+    # for _ in range(total_records):
+    #     person = Person(
+    #         namn=faker.first_name(),
+    #         efternamn=faker.last_name(),
+    #         personnummer=faker.unique.ssn(),
+    #         stad=faker.city(),
+    #         land=faker.country(),
+    #         yrke=faker.job(),
+    #         telefonnummer=faker.phone_number()
+    #     )
+
     t_start = default_timer()
     total_records = 1000000
-    persons = []
+    batch_size = 100000
+    inserted_records = 0
 
-    for _ in range(total_records):
-        person = Person(
-            namn=faker.first_name(),
-            efternamn=faker.last_name(),
-            personnummer=faker.unique.ssn(),
-            stad=faker.city(),
-            land=faker.country(),
-            yrke=faker.job(),
-            telefonnummer=faker.phone_number()
-        )
-        persons.append(person)
+    while inserted_records < total_records:
+        persons = []
+        for _ in range(batch_size):
+            person = Person(
+                namn=faker.first_name(),
+                efternamn=faker.last_name(),
+                personnummer=faker.unique.ssn(),
+                stad=faker.city(),
+                land=faker.country(),
+                yrke=faker.job(),
+                telefonnummer=faker.phone_number()
+            )
+            persons.append(person)
+        
         if _ % 100000 == 0:  
             t_end_jämn = default_timer()
             print(f"{_} records created after {t_end_jämn - t_start :.2f} sekunder")
-    try:
-        db.session.bulk_save_objects(persons)  
-        db.session.commit()
-        print("1,000,000 fake records have been added to the database!")
-    except Exception as e:
-        db.session.rollback()
-        print(f"An error occurred: {e}")
+        try:
+            db.session.bulk_save_objects(persons)  
+            db.session.commit()
+            print("1,000,000 fake records have been added to the database!")
+        except Exception as e:
+            db.session.rollback()
+            print(f"An error occurred: {e}")
 
     t_end = default_timer()
     print(f"Det tog {t_end - t_start:.2f} sekunder att skapa listan!")
@@ -73,3 +92,5 @@ if __name__ == "__main__":
         print("Tables created successfully!")
         main() 
     app.run(debug=True)
+
+
