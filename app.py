@@ -2,6 +2,7 @@ from flask import Flask, render_template
 from faker import Faker
 from flask_sqlalchemy import SQLAlchemy
 from timeit import default_timer
+import os
 
 app = Flask(__name__)
 
@@ -31,7 +32,7 @@ def home():
 
 def main():
     record_count = Person.query.count()
-    if record_count > 100000:
+    if record_count > 1000000:
         print(f"Det finns {record_count} data i datasetet så INGA nya data")
         return
     
@@ -54,7 +55,7 @@ def main():
     t_start = default_timer()
     total_records = 1000000
     batch_size = 100000
-    inserted_records = 0
+    inserted_records = record_count
 
     while inserted_records < total_records:
         persons = []
@@ -70,27 +71,32 @@ def main():
             )
             persons.append(person)
         
-        if _ % 100000 == 0:  
-            t_end_jämn = default_timer()
-            print(f"{_} records created after {t_end_jämn - t_start :.2f} sekunder")
+        # if _ % 100000 == 0:  
+        #     print(f"{_} records created after {default_timer() - t_start :.2f} sekunder")
         try:
             db.session.bulk_save_objects(persons)  
             db.session.commit()
-            print("1,000,000 fake records have been added to the database!")
+            inserted_records += batch_size
+            print(f"100,000 more fake records have been added to the database after {default_timer() - t_start:.2f} sekunder!")
+        
         except Exception as e:
             db.session.rollback()
             print(f"An error occurred: {e}")
+            break
+
 
     t_end = default_timer()
     print(f"Det tog {t_end - t_start:.2f} sekunder att skapa listan!")
 
-
 if __name__ == "__main__":
-    with app.app_context():
+    if not app.debug:
         print("Creating tables...")
-        db.create_all() 
-        print("Tables created successfully!")
-        main() 
+        with app.app_context():
+            db.create_all()
+            main()
+            print("Tables created successfully!")
+
+
     app.run(debug=True)
 
 
