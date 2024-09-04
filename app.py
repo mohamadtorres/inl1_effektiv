@@ -1,8 +1,9 @@
-from flask import Flask, render_template,request
-from faker import Faker
+from flask import Flask, render_template, request
 from flask_sqlalchemy import SQLAlchemy
+from time import sleep
+from collections import OrderedDict
+from faker import Faker
 from timeit import default_timer
-import os
 
 app = Flask(__name__)
 
@@ -11,6 +12,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 faker = Faker('sv_SE')
+
 
 class Person(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -25,24 +27,56 @@ class Person(db.Model):
     def __repr__(self):
         return f"<Person {self.namn} {self.efternamn}>"
 
+
+# LRU-cache implementation
+class LRUCache:
+    def __init__(self, capacity=50):
+        self.cache = OrderedDict()
+        self.capacity = capacity
+
+    def get(self, key):
+        if key not in self.cache:
+            return None
+        self.cache.move_to_end(key)  # Mark as recently used
+        return self.cache[key]
+
+    def put(self, key, value):
+        if key in self.cache:
+            self.cache.move_to_end(key)
+        self.cache[key] = value
+        if len(self.cache) > self.capacity:
+            self.cache.popitem(last=False)  # Remove oldest
+
+lru_cache = LRUCache()
+
 @app.route("/")
 def home():
-    return render_template("base.html")
-
+    page = request.args.get('page', 1, type=int)
+    persons = Person.query.paginate(page=page, per_page=20)
+    return render_template("base.html", persons=persons)
 
 @app.route("/work")
 def work():
     page = request.args.get('page', 1, type=int)
     persons = Person.query.paginate(page=page, per_page=20)
-    print(f"Total persons: {persons.total}")  # This should print 1000000
-    print(f"Items on this page: {len(persons.items)}")  # This should print the number of items on the current page
+    print(f"Total persons: {persons.total}")
+    print(f"Items on this page: {len(persons.items)}")
     return render_template("work.html", persons=persons)
 
 @app.route("/person/<int:id>")
 def person_detail(id):
-    person = Person.query.get_or_404(id)
+    # Check if person is in cache
+    cached_person = lru_cache.get(id)
+    if cached_person:
+        print("Using cached data")
+        person = cached_person
+    else:
+        print("Fetching from database with delay")
+        sleep(5)  # Simulate delay
+        person = Person.query.get_or_404(id)
+        lru_cache.put(id, person)
+    
     return render_template("person_detail.html", person=person)
-
 
 @app.route("/about")
 def about():
@@ -55,26 +89,10 @@ def contact():
 
 def main():
     record_count = Person.query.count()
-    if record_count > 1000000:
+    if record_count >= 1000000:
         print(f"Det finns {record_count} data i datasetet så INGA nya data")
         return
     
-
-    # t_start = default_timer()
-    # total_records = 1000000
-    # persons = []
-
-    # for _ in range(total_records):
-    #     person = Person(
-    #         namn=faker.first_name(),
-    #         efternamn=faker.last_name(),
-    #         personnummer=faker.unique.ssn(),
-    #         stad=faker.city(),
-    #         land=faker.country(),
-    #         yrke=faker.job(),
-    #         telefonnummer=faker.phone_number()
-    #     )
-
     t_start = default_timer()
     total_records = 1000000
     batch_size = 100000
@@ -94,8 +112,6 @@ def main():
             )
             persons.append(person)
         
-        # if _ % 100000 == 0:  
-        #     print(f"{_} records created after {default_timer() - t_start :.2f} sekunder")
         try:
             db.session.bulk_save_objects(persons)  
             db.session.commit()
@@ -107,19 +123,14 @@ def main():
             print(f"An error occurred: {e}")
             break
 
-
     t_end = default_timer()
     print(f"Det tog {t_end - t_start:.2f} sekunder att skapa listan!")
 
 if __name__ == "__main__":
-    if not app.debug:
-        print("Creating tables...")
-        with app.app_context():
-            db.create_all()
-            main()
-            print("Tables created successfully!")
-
+    print("Creating tables...")
+    with app.app_context():
+        db.create_all()
+        main()
+        print("Tables created successfully!")
 
     app.run(debug=True)
-
-
