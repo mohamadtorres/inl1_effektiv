@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template,request
 from faker import Faker
 from flask_sqlalchemy import SQLAlchemy
 from timeit import default_timer
@@ -28,6 +28,29 @@ class Person(db.Model):
 @app.route("/")
 def home():
     return render_template("base.html")
+
+
+@app.route("/work")
+def work():
+    page = request.args.get('page', 1, type=int)
+    persons = Person.query.paginate(page=page, per_page=20)
+    print(f"Total persons: {persons.total}")  # This should print 1000000
+    print(f"Items on this page: {len(persons.items)}")  # This should print the number of items on the current page
+    return render_template("work.html", persons=persons)
+
+@app.route("/person/<int:id>")
+def person_detail(id):
+    person = Person.query.get_or_404(id)
+    return render_template("person_detail.html", person=person)
+
+
+@app.route("/about")
+def about():
+    return render_template("about.html")
+
+@app.route("/contact")
+def contact():
+    return render_template("contact.html")
 
 
 def main():

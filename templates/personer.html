@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>Standalone Page</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                background-image: url("{{ url_for('static', filename='images/pic02.jpg') }}");
+                background-size: cover;
+                background-position: center;
+                height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-family: Arial, sans-serif;
+                color: white;
+            }
+            .content {
+                text-align: center;
+                background: rgba(0, 0, 0, 0.5);
+                padding: 20px;
+                border-radius: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="content">
+            <h1>Här</h1>
+            <p>This is a standalone page with a background image.</p>
+        </div>
+    </body>
+</html>
+
