@@ -4,6 +4,7 @@ from time import sleep
 from collections import OrderedDict
 from faker import Faker
 from timeit import default_timer
+from math import ceil
 
 app = Flask(__name__)
 
@@ -28,7 +29,7 @@ class Person(db.Model):
         return f"<Person {self.namn} {self.efternamn}>"
 
 
-# LRU-cache implementation
+# fixar en LRU cache
 class LRUCache:
     def __init__(self, capacity=50):
         self.cache = OrderedDict()
@@ -37,7 +38,7 @@ class LRUCache:
     def get(self, key):
         if key not in self.cache:
             return None
-        self.cache.move_to_end(key)  # Mark as recently used
+        self.cache.move_to_end(key) 
         return self.cache[key]
 
     def put(self, key, value):
@@ -45,34 +46,52 @@ class LRUCache:
             self.cache.move_to_end(key)
         self.cache[key] = value
         if len(self.cache) > self.capacity:
-            self.cache.popitem(last=False)  # Remove oldest
+            self.cache.popitem(last=False)  # 50 platser finns så den sista ska pop()
+
+    def get_all(self):
+        return list(self.cache.values())[::-1]  # den som visades sist ska komma först
 
 lru_cache = LRUCache()
 
 @app.route("/")
 def home():
-    page = request.args.get('page', 1, type=int)
-    persons = Person.query.paginate(page=page, per_page=20)
-    return render_template("base.html", persons=persons)
-
+    return render_template("base.html")
 @app.route("/work")
 def work():
     page = request.args.get('page', 1, type=int)
-    persons = Person.query.paginate(page=page, per_page=20)
-    print(f"Total persons: {persons.total}")
-    print(f"Items on this page: {len(persons.items)}")
-    return render_template("work.html", persons=persons)
+    per_page = 20
+
+   #hämtar från lru
+    cached_persons = lru_cache.get_all()
+
+    # Jag hade max 50 personer i cache och 20 i varje pagination
+    offset = max(0, (page - 1) * per_page - len(cached_persons))
+    limit = per_page - len(cached_persons)
+
+    # 999950 personer är kvar från databasen och de kommer och följer cache lista
+    remaining_persons_query = Person.query.filter(Person.id.notin_([p.id for p in cached_persons])).offset(offset).limit(limit)
+    remaining_persons = remaining_persons_query.all()
+
+    persons = cached_persons + remaining_persons
+
+    total_records = Person.query.count()
+    total_pages = (total_records + len(cached_persons) + per_page - 1) // per_page
+
+    return render_template("work.html", persons=persons, page=page, total_pages=total_pages)
+
+
+
 
 @app.route("/person/<int:id>")
 def person_detail(id):
-    # Check if person is in cache
+
     cached_person = lru_cache.get(id)
     if cached_person:
         print("Using cached data")
         person = cached_person
     else:
         print("Fetching from database with delay")
-        sleep(5)  # Simulate delay
+        sleep(5)  # 5 sekunder sleep
         person = Person.query.get_or_404(id)
         lru_cache.put(id, person)
     

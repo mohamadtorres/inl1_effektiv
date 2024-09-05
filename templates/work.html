@@ -8,8 +8,7 @@
         <style>
             body {
                 font-family: Arial, sans-serif;
-                background-color: #f0f0f0;
-                color: #333;
+                background-color: #524444;
                 margin: 0;
                 padding: 0;
             }
@@ -20,24 +19,18 @@
                 text-align: center;
             }
             table {
-                width: 100%; /* Use full width of the container */
+                width: 80%;
                 margin: 25px auto;
                 border-collapse: collapse;
                 font-size: 18px;
                 text-align: left;
-                background-color: #fff;
-                color: #333;
-                table-layout: auto; /* Allow the table layout to adjust based on content */
             }
             th, td {
                 padding: 12px;
-                border-bottom: 1px solid #ddd;
-                word-wrap: break-word; /* Allow content to wrap to the next line */
-                white-space: nowrap; /* Prevent content from spilling out of cells */
+                border-bottom: 1px solid #050505;
             }
             th {
-                background-color: #353434;
-                color: #333;
+                background-color: #333131;
             }
             .pagination {
                 display: flex;
@@ -72,11 +65,9 @@
         </header>
 
         <div id="main">
-            <p>Total persons: {{ persons.total }}</p>
-            <p>Items on this page: {{ persons.items | length }}</p>
-
-            <!-- Display data in a table -->
-            <table border="1" cellpadding="10" cellspacing="0">
+            <p>Total personser i databasen är 1,000,000</p>
+            <p>Mest sökta personer eller Senast Sökta personer visas först!</p>
+            <table>
                 <thead>
                     <tr>
                         <th>Nummer</th>
@@ -85,9 +76,9 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for person in persons.items %}
+                    {% for person in persons %}
                     <tr>
-                        <td>{{ loop.index + (persons.page - 1) * persons.per_page }}</td>
+                        <td>{{ loop.index + (page - 1) * 20 }}</td>
                         <td><a href="{{ url_for('person_detail', id=person.id) }}">{{ person.namn }} {{ person.efternamn }}</a></td>
                         <td>{{ person.stad }}</td>
                     </tr>
@@ -99,32 +90,41 @@
                 </tbody>
             </table>
 
-            <!-- Simple pagination controls -->
             <div class="pagination">
-                {% if persons.has_prev %}
-                    <a href="{{ url_for('work', page=persons.prev_num) }}">&laquo; Previous</a>
+                {% if page > 1 %}
+                    <a href="{{ url_for('work', page=page-1) }}">&laquo; Föregående</a>
                 {% else %}
-                    <span class="disabled">&laquo; Previous</span>
+                    <a class="disabled">&laquo; Föregående</a>
                 {% endif %}
-
-                {% for page_num in persons.iter_pages() %}
-                    {% if page_num %}
-                        {% if page_num == persons.page %}
-                            <span class="current">{{ page_num }}</span>
+            
+                {% if page > 3 %}
+                    <a href="{{ url_for('work', page=1) }}">1</a>
+                    <span class="disabled">...</span>
+                {% endif %}
+            
+                {% for i in range(1, total_pages + 1) %}
+                    {% if i >= page - 2 and i <= page + 2 %}
+                        {% if i == page %}
+                            <a class="active">{{ i }}</a>
                         {% else %}
-                            <a href="{{ url_for('work', page=page_num) }}">{{ page_num }}</a>
+                            <a href="{{ url_for('work', page=i) }}">{{ i }}</a>
                         {% endif %}
-                    {% else %}
-                        <span>...</span>
                     {% endif %}
                 {% endfor %}
-
-                {% if persons.has_next %}
-                    <a href="{{ url_for('work', page=persons.next_num) }}">Next &raquo;</a>
+            
+                {% if page < total_pages - 2 %}
+                    <span class="disabled">...</span>
+                    <a href="{{ url_for('work', page=total_pages) }}">{{ total_pages }}</a>
+                {% endif %}
+            
+                {% if page < total_pages %}
+                    <a href="{{ url_for('work', page=page+1) }}">Nästa &raquo;</a>
                 {% else %}
-                    <span class="disabled">Next &raquo;</span>
+                    <a class="disabled">Nästa &raquo;</a>
                 {% endif %}
             </div>
+            
+            
         </div>
     </body>
 </html>
