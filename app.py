@@ -4,7 +4,6 @@ from time import sleep
 from collections import OrderedDict
 from faker import Faker
 from timeit import default_timer
-from math import ceil
 
 app = Flask(__name__)
 
@@ -87,10 +86,10 @@ def person_detail(id):
 
     cached_person = lru_cache.get(id)
     if cached_person:
-        print("Using cached data")
+        print("Personen fanns i cathed data")
         person = cached_person
     else:
-        print("Fetching from database with delay")
+        print("Hämtar info från databas med delay!")
         sleep(5)  # 5 sekunder sleep
         person = Person.query.get_or_404(id)
         lru_cache.put(id, person)
@@ -135,6 +134,7 @@ def main():
             db.session.bulk_save_objects(persons)  
             db.session.commit()
             inserted_records += batch_size
+            #för att se om data läggs till in i databaset. (Hade nåt problem med det)
             print(f"100,000 more fake records have been added to the database after {default_timer() - t_start:.2f} sekunder!")
         
         except Exception as e:
